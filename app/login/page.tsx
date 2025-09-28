@@ -1,3 +1,6 @@
+"use client"
+
+import { FormEvent, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -5,8 +8,31 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Brain, Mail, Lock, Eye } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 export default function LoginPage() {
+  const { setUser } = useAuthContext()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      const { user } = await apiClient.login({ email, password })
+      setUser(user)
+    } catch (error) {
+      setError((error as Error).message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -68,12 +94,21 @@ export default function LoginPage() {
             </div>
 
             {/* Login Form */}
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="your@email.com" className="pl-10" required />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    className="pl-10"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    autoComplete="email"
+                  />
                 </div>
               </div>
 
@@ -81,17 +116,30 @@ export default function LoginPage() {
                 <Label htmlFor="password">Пароль</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" placeholder="Введите пароль" className="pl-10 pr-10" required />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Введите пароль"
+                    className="pl-10 pr-10"
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
+                  />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
                   >
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </div>
               </div>
+
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -109,8 +157,8 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                Войти
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? "Входим..." : "Войти"}
               </Button>
             </form>
 

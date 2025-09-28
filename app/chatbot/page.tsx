@@ -27,6 +27,8 @@ import {
   TrendingUp,
 } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 interface Message {
   id: string
@@ -35,21 +37,27 @@ interface Message {
   timestamp: Date
 }
 
+const initialMessage: Message = {
+  id: "welcome",
+  type: "bot",
+  content: "Привет! Я AI Helper бот. Задайте вопрос, и я помогу.",
+  timestamp: new Date(),
+}
+
 export default function ChatbotPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      type: "bot",
-      content: "Привет! Я AI Helper бот. Как дела? Чем могу помочь?",
-      timestamp: new Date(),
-    },
-  ])
+  const { user } = useAuthContext()
+  const [messages, setMessages] = useState<Message[]>([initialMessage])
   const [inputMessage, setInputMessage] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return
+    if (!user) {
+      setError("Чтобы отправлять сообщения боту, войдите в аккаунт")
+      return
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -61,33 +69,20 @@ export default function ChatbotPage() {
     setMessages((prev) => [...prev, userMessage])
     setInputMessage("")
     setIsTyping(true)
+    setError(null)
 
     try {
-      // TODO: Replace with actual API call to chatbot service
-      // const response = await fetch('/api/chatbot', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ message: inputMessage })
-      // })
-      // const data = await response.json()
-      // const botResponse: Message = {
-      //   id: (Date.now() + 1).toString(),
-      //   type: "bot",
-      //   content: data.response,
-      //   timestamp: new Date(),
-      // }
-      // setMessages((prev) => [...prev, botResponse])
-
-      // For now, show empty response until API is connected
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: "bot",
-        content: "Извините, бот временно недоступен. Пожалуйста, подключите API для получения ответов.",
-        timestamp: new Date(),
-      }
-      setMessages((prev) => [...prev, botResponse])
+      const response = await apiClient.chatMessage({ message: inputMessage })
+      const history: Message[] = response.messages.map((message, index) => ({
+        id: message.id ?? `${Date.now()}-${index}`,
+        type: message.role === "assistant" ? "bot" : "user",
+        content: message.content,
+        timestamp: message.createdAt ? new Date(message.createdAt) : new Date(),
+      }))
+      setMessages([initialMessage, ...history])
     } catch (error) {
       console.error("Chatbot response failed:", error)
+      setError((error as Error).message)
     } finally {
       setIsTyping(false)
     }
@@ -101,6 +96,11 @@ export default function ChatbotPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {!user ? (
+        <div className="bg-muted/40 border-b border-border text-center text-xs uppercase tracking-wide py-2">
+          Войдите в аккаунт, чтобы вести диалог и сохранять историю
+        </div>
+      ) : null}
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -220,6 +220,7 @@ export default function ChatbotPage() {
                 <Separator />
 
                 <div className="p-4">
+                  {error ? <p className="text-xs text-destructive mb-2">{error}</p> : null}
                   <div className="flex gap-2">
                     <Input
                       placeholder="Введите сообщение..."

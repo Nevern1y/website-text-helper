@@ -11,8 +11,11 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Brain, FileText, Download, Share2, Plus, Copy, RefreshCw, Sparkles, ArrowLeft, Wand2 } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 export default function ContentGenerationPage() {
+  const { user } = useAuthContext()
   const [topic, setTopic] = useState("")
   const [contentType, setContentType] = useState("")
   const [tone, setTone] = useState("")
@@ -20,27 +23,19 @@ export default function ContentGenerationPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState("")
   const [editableContent, setEditableContent] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
   const handleGenerate = async () => {
     if (!topic || !contentType) return
 
     setIsGenerating(true)
+    setError(null)
     try {
-      // TODO: Replace with actual API call to content generation service
-      // const response = await fetch('/api/generate-content', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ topic, contentType, tone, length })
-      // })
-      // const data = await response.json()
-      // setGeneratedContent(data.content)
-      // setEditableContent(data.content)
-
-      // For now, show empty state until API is connected
-      setGeneratedContent("")
-      setEditableContent("")
+      const response = await apiClient.generateContent({ topic, contentType, tone, length })
+      setGeneratedContent(response.content)
+      setEditableContent(response.content)
     } catch (error) {
-      console.error("Content generation failed:", error)
+      setError((error as Error).message)
     } finally {
       setIsGenerating(false)
     }
@@ -62,6 +57,11 @@ export default function ContentGenerationPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {!user ? (
+        <div className="bg-destructive/10 text-destructive text-center py-2 text-sm">
+          Чтобы сохранять историю генераций, войдите в аккаунт
+        </div>
+      ) : null}
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -180,6 +180,7 @@ export default function ContentGenerationPage() {
                     </>
                   )}
                 </Button>
+                {error ? <p className="text-sm text-destructive">{error}</p> : null}
               </CardContent>
             </Card>
 

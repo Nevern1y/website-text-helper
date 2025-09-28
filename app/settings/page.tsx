@@ -1,3 +1,6 @@
+"use client"
+
+import { FormEvent, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,8 +12,57 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Brain, User, Bell, Shield, CreditCard, Trash2, Upload } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 export default function SettingsPage() {
+  const { user, setUser } = useAuthContext()
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [bio, setBio] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (user) {
+      const [first = "", ...rest] = user.name.split(" ")
+      setFirstName(first)
+      setLastName(rest.join(" "))
+      setEmail(user.email)
+    }
+  }, [user])
+
+  const subscriptionLabel = useMemo(() => {
+    if (!user) return "Free"
+    return user.subscriptionPlan ? user.subscriptionPlan : "Free"
+  }, [user])
+
+  const handleSaveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!user) {
+      setError("Войдите в аккаунт для обновления профиля")
+      return
+    }
+    setIsSaving(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const { user: updatedUser } = await apiClient.updateProfile({
+        name: `${firstName} ${lastName}`.trim(),
+        email,
+        bio,
+      })
+      setUser(updatedUser)
+      setMessage("Профиль обновлён")
+    } catch (error) {
+      setError((error as Error).message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -33,6 +85,14 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-6">
+          {message ? (
+            <div className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary">{message}</div>
+          ) : null}
+          {error ? (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
           {/* Profile Settings */}
           <Card>
             <CardHeader>
@@ -43,6 +103,7 @@ export default function SettingsPage() {
               <CardDescription>Основная информация о вашем аккаунте</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <form className="space-y-6" onSubmit={handleSaveProfile}>
               <div className="flex items-center gap-6">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src="/user-profile-illustration.png" />
@@ -60,23 +121,49 @@ export default function SettingsPage() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Имя</Label>
-                  <Input id="firstName" placeholder="Ваше имя" />
+                  <Input
+                    id="firstName"
+                    placeholder="Ваше имя"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Фамилия</Label>
-                  <Input id="lastName" placeholder="Ваша фамилия" />
+                  <Input
+                    id="lastName"
+                    placeholder="Ваша фамилия"
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="your@email.com" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="bio">О себе</Label>
-                <Textarea id="bio" placeholder="Расскажите о себе и своем бизнесе..." />
+                <Textarea
+                  id="bio"
+                  placeholder="Расскажите о себе и своем бизнесе..."
+                  value={bio}
+                  onChange={(event) => setBio(event.target.value)}
+                />
               </div>
+
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? "Сохраняем..." : "Сохранить изменения"}
+              </Button>
+              </form>
             </CardContent>
           </Card>
 
@@ -93,12 +180,14 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold">Бесплатный план</h3>
+                    <h3 className="font-semibold">Тариф: {subscriptionLabel}</h3>
                     <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      Временно бесплатно
+                      Активен
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">Все функции доступны бесплатно</p>
+                  <p className="text-sm text-muted-foreground">
+                    Управляйте подпиской и лимитами использования
+                  </p>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">₽0</div>
