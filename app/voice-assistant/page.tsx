@@ -13,6 +13,7 @@ import Link from "next/link"
 import { apiClient } from "@/lib/api-client"
 import { useAuthContext } from "@/components/providers/auth-context"
 
+
 type VoiceOption = "female-ru" | "male-ru" | "female-en" | "male-en"
 type SpeechSpeed = "slow" | "normal" | "fast"
 
@@ -32,6 +33,8 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.readAsDataURL(blob)
   })
 }
+=======
+
 
 export default function VoiceAssistantPage() {
   const { user } = useAuthContext()
@@ -41,6 +44,7 @@ export default function VoiceAssistantPage() {
   const [isSynthesizing, setIsSynthesizing] = useState(false)
   const [transcribedText, setTranscribedText] = useState("")
   const [voiceText, setVoiceText] = useState("")
+
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption>("female-ru")
   const [speechSpeed, setSpeechSpeed] = useState<SpeechSpeed>("normal")
   const [error, setError] = useState<string | null>(null)
@@ -88,10 +92,18 @@ export default function VoiceAssistantPage() {
   }, [recordedAudioUrl])
 
   const startRecording = async () => {
+=======
+  const [selectedVoice, setSelectedVoice] = useState("female-ru")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleStartRecording = () => {
+
     if (!user) {
       setError("Для распознавания речи необходимо войти в аккаунт")
       return
     }
+
 
     if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       setError("Браузер не поддерживает запись звука")
@@ -154,6 +166,25 @@ export default function VoiceAssistantPage() {
     } catch (err) {
       setError("Не удалось получить доступ к микрофону")
     }
+=======
+    setError(null)
+    setIsRecording(true)
+    setIsProcessing(true)
+
+    apiClient
+      .transcribeAudio({ audio: typeof window !== "undefined" ? window.btoa("demo audio") : "" })
+      .then((response) => {
+        setTranscribedText(response.transcript)
+      })
+      .catch((error) => {
+        setError((error as Error).message)
+        setTranscribedText("")
+      })
+      .finally(() => {
+        setIsRecording(false)
+        setIsProcessing(false)
+      })
+
   }
 
   const handleStopRecording = () => {
@@ -196,6 +227,7 @@ export default function VoiceAssistantPage() {
 
     if (!voiceText.trim()) return
 
+
     try {
       setError(null)
       setInfoMessage(null)
@@ -230,6 +262,14 @@ export default function VoiceAssistantPage() {
     } finally {
       setIsSynthesizing(false)
     }
+=======
+    
+    setIsPlaying(true)
+    // TODO: Implement actual text-to-speech API
+    setTimeout(() => {
+      setIsPlaying(false)
+    }, 1000)
+
   }
 
   const handleDownloadSynthesized = () => {
@@ -321,6 +361,7 @@ export default function VoiceAssistantPage() {
                     <p className="mt-4 text-muted-foreground">{recordingStatus}</p>
                   </div>
                   {error ? <p className="text-sm text-destructive text-center">{error}</p> : null}
+
                   {infoMessage ? <p className="text-sm text-muted-foreground text-center">{infoMessage}</p> : null}
 
                   {recordedAudioUrl ? (
@@ -329,6 +370,8 @@ export default function VoiceAssistantPage() {
                       <audio controls src={recordedAudioUrl} className="w-full" />
                     </div>
                   ) : null}
+=======
+
 
                   {transcribedText ? (
                     <div className="space-y-2">
