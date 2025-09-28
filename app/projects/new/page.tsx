@@ -140,32 +140,35 @@ export default function NewProjectPage() {
                 {PROJECT_TYPES.map((projectType) => {
                   const Icon = projectType.icon
                   return (
-                  <button
-                    type="button"
-                    key={projectType.id}
-                    onClick={() => setType(projectType.id)}
-                    className={`p-4 border rounded-lg text-left transition-colors ${
-                      type === projectType.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`p-2 rounded-lg ${projectType.backgroundClass}`}>
-                        <Icon className={`h-5 w-5 ${projectType.iconClass}`} />
+                    <button
+                      type="button"
+                      key={projectType.id}
+                      onClick={() => setType(projectType.id)}
+                      className={`p-4 border rounded-lg text-left transition-colors ${
+                        type === projectType.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`p-2 rounded-lg ${projectType.backgroundClass}`}>
+                          <Icon className={`h-5 w-5 ${projectType.iconClass}`} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold flex items-center gap-2">
+                            {projectType.title}
+                            {projectType.badge ? (
+                              <Badge variant="secondary" className="uppercase text-xs">
+                                {projectType.badge}
+                              </Badge>
+                            ) : null}
+                          </h3>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold flex items-center gap-2">
-                          {projectType.title}
-                          {projectType.badge ? (
-                            <Badge variant="secondary" className="uppercase text-xs">
-                              {projectType.badge}
-                            </Badge>
-                          ) : null}
-                        </h3>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{projectType.description}</p>
-                  </button>
-                })}
+                      <p className="text-sm text-muted-foreground">{projectType.description}</p>
+                    </button>
+                  )
+                })
               </div>
             </CardContent>
           </Card>
