@@ -144,11 +144,20 @@ export default function NewProjectPage() {
                       type="button"
                       key={projectType.id}
                       onClick={() => setType(projectType.id)}
+
                       className={`p-4 border rounded-lg text-left transition-colors ${
                         type === projectType.id
                           ? "border-primary bg-primary/5"
                           : "border-border hover:bg-muted/50"
                       }`}
+
+                      className={[
+                        "p-4 border rounded-lg text-left transition-colors",
+                        type === projectType.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50",
+                      ].join(" ")}
+
                     >
                       <div className="flex items-center gap-3 mb-3">
                         <div className={`p-2 rounded-lg ${projectType.backgroundClass}`}>
