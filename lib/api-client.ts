@@ -50,7 +50,6 @@ export const apiClient = {
     }),
   transcribeAudio: (payload: { audio: string }) =>
     apiFetch<{ transcript: string }>("/api/ai/voice/transcribe", { method: "POST", body: JSON.stringify(payload) }),
-
   synthesizeAudio: (payload: { text: string; voice?: string; speed?: string }) =>
     apiFetch<{ audio: string; voice: string; speed: string }>("/api/ai/voice/synthesize", {
       method: "POST",
@@ -70,16 +69,6 @@ export const apiClient = {
     apiFetch<{ file: any }>("/api/files/upload", { method: "POST", body: JSON.stringify(payload) }),
   getFile: (id: string) => apiFetch<{ file: any }>(`/api/files/${id}`),
   deleteFile: (id: string) => apiFetch<{ success: boolean }>(`/api/files/${id}`, { method: "DELETE" }),
-=======
-  marketingIdea: (payload: Record<string, unknown>) =>
-    apiFetch<{ idea: any; history: any[] }>("/api/ai/marketing/ideas", { method: "POST", body: JSON.stringify(payload) }),
-  listProjects: () => apiFetch<{ projects: any[] }>("/api/projects"),
-  createProject: (payload: Record<string, unknown>) =>
-    apiFetch<{ project: any }>("/api/projects", { method: "POST", body: JSON.stringify(payload) }),
-  dashboard: () => apiFetch<{ snapshot: any; projects: any[]; requests: any[] }>("/api/dashboard"),
-  uploadFile: (payload: { filename: string; mimeType: string; content: string; originalName?: string }) =>
-    apiFetch<{ file: any }>("/api/files/upload", { method: "POST", body: JSON.stringify(payload) }),
-
   updateProfile: (payload: Record<string, unknown>) =>
     apiFetch<{ user: any }>("/api/users/profile", { method: "PUT", body: JSON.stringify(payload) }),
   listModels: () => apiFetch<{ models: any[] }>("/api/ai/models"),
