@@ -23,31 +23,37 @@ import {
   DollarSign,
 } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 export default function MarketingPage() {
+  const { user } = useAuthContext()
   const [businessType, setBusinessType] = useState("")
   const [targetAudience, setTargetAudience] = useState("")
   const [goals, setGoals] = useState("")
   const [ideas, setIdeas] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedPlatform, setSelectedPlatform] = useState("all")
+  const [error, setError] = useState<string | null>(null)
 
   const generateIdeas = async () => {
+    if (!businessType || !targetAudience) return
+    if (!user) {
+      setError("Войдите в аккаунт, чтобы генерировать идеи")
+      return
+    }
     setIsGenerating(true)
+    setError(null)
     try {
-      // TODO: Replace with actual API call to marketing ideas generation service
-      // const response = await fetch('/api/generate-marketing-ideas', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ businessType, targetAudience, goals })
-      // })
-      // const data = await response.json()
-      // setIdeas(data.ideas)
-
-      // For now, show empty state until API is connected
-      setIdeas([])
+      const response = await apiClient.marketingIdea({
+        topic: businessType,
+        channel: selectedPlatform,
+        audience: targetAudience,
+        goals,
+      })
+      setIdeas(response.history.map((item: any) => item.idea))
     } catch (error) {
-      console.error("Marketing ideas generation failed:", error)
+      setError((error as Error).message)
     } finally {
       setIsGenerating(false)
     }
@@ -55,6 +61,11 @@ export default function MarketingPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {!user ? (
+        <div className="bg-muted/40 border-b border-border text-center text-xs uppercase tracking-wide py-2">
+          Авторизуйтесь, чтобы сохранять маркетинговые идеи
+        </div>
+      ) : null}
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -164,6 +175,7 @@ export default function MarketingPage() {
                     </>
                   )}
                 </Button>
+                {error ? <p className="text-sm text-destructive text-center">{error}</p> : null}
               </CardContent>
             </Card>
 

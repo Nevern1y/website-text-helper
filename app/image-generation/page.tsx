@@ -9,32 +9,50 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ImageIcon, Download, Share2, Copy, Sparkles, Palette, Camera, Wand2 } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 export default function ImageGenerationPage() {
+  const { user } = useAuthContext()
   const [prompt, setPrompt] = useState("")
   const [style, setStyle] = useState("")
   const [size, setSize] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImages, setGeneratedImages] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  const handleDownloadImage = (image: string, index: number) => {
+    const link = document.createElement("a")
+    link.href = image
+    link.download = `ai-helper-image-${index + 1}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleCopyLink = async (image: string) => {
+    try {
+      await navigator.clipboard.writeText(image)
+      setError(null)
+    } catch (error) {
+      setError("Не удалось скопировать ссылку на изображение")
+    }
+  }
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return
+    if (!user) {
+      setError("Для генерации изображений необходимо войти в аккаунт")
+      return
+    }
 
     setIsGenerating(true)
+    setError(null)
     try {
-      // TODO: Replace with actual API call to image generation service
-      // const response = await fetch('/api/generate-images', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ prompt, style, size })
-      // })
-      // const data = await response.json()
-      // setGeneratedImages(data.images)
-
-      // For now, show empty state until API is connected
-      setGeneratedImages([])
+      const response = await apiClient.generateImage({ prompt, style, size, count: 2 })
+      setGeneratedImages(response.images.map((image) => image.url))
     } catch (error) {
-      console.error("Image generation failed:", error)
+      setError((error as Error).message)
     } finally {
       setIsGenerating(false)
     }
@@ -42,6 +60,11 @@ export default function ImageGenerationPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {!user ? (
+        <div className="bg-muted/40 border-b border-border text-center text-xs uppercase tracking-wide py-2">
+          Авторизуйтесь, чтобы сохранять результаты генерации изображений
+        </div>
+      ) : null}
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -140,6 +163,7 @@ export default function ImageGenerationPage() {
                     </>
                   )}
                 </Button>
+                {error ? <p className="text-sm text-destructive text-center">{error}</p> : null}
 
                 {/* Quick Templates */}
                 <div className="space-y-3">
@@ -198,13 +222,14 @@ export default function ImageGenerationPage() {
                           className="w-full h-48 object-cover rounded-lg border"
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                          <Button size="sm" variant="secondary">
+                          <Button size="sm" variant="secondary" onClick={() => handleDownloadImage(image, index)}>
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="secondary">
+                          <Button size="sm" variant="secondary" onClick={() => window.open(image, "_blank")}
+                          >
                             <Share2 className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="secondary">
+                          <Button size="sm" variant="secondary" onClick={() => handleCopyLink(image)}>
                             <Copy className="h-4 w-4" />
                           </Button>
                         </div>

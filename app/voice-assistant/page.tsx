@@ -10,25 +10,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Mic, MicOff, Play, Pause, Download, Volume2, MessageSquare } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 export default function VoiceAssistantPage() {
+  const { user } = useAuthContext()
   const [isRecording, setIsRecording] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [transcribedText, setTranscribedText] = useState("")
   const [voiceText, setVoiceText] = useState("")
   const [selectedVoice, setSelectedVoice] = useState("female-ru")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleStartRecording = () => {
+    if (!user) {
+      setError("Для распознавания речи необходимо войти в аккаунт")
+      return
+    }
+    setError(null)
     setIsRecording(true)
     setIsProcessing(true)
 
-    // TODO: Implement actual voice recognition API
-    setTimeout(() => {
-      setTranscribedText("")
-      setIsRecording(false)
-      setIsProcessing(false)
-    }, 3000)
+    apiClient
+      .transcribeAudio({ audio: typeof window !== "undefined" ? window.btoa("demo audio") : "" })
+      .then((response) => {
+        setTranscribedText(response.transcript)
+      })
+      .catch((error) => {
+        setError((error as Error).message)
+        setTranscribedText("")
+      })
+      .finally(() => {
+        setIsRecording(false)
+        setIsProcessing(false)
+      })
   }
 
   const handleStopRecording = () => {
@@ -38,7 +54,7 @@ export default function VoiceAssistantPage() {
 
   const handleTextToSpeech = () => {
     if (!voiceText.trim()) return
-
+    
     setIsPlaying(true)
     // TODO: Implement actual text-to-speech API
     setTimeout(() => {
@@ -48,6 +64,11 @@ export default function VoiceAssistantPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {!user ? (
+        <div className="bg-muted/40 border-b border-border text-center text-xs uppercase tracking-wide py-2">
+          Авторизуйтесь, чтобы использовать голосовой помощник
+        </div>
+      ) : null}
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -113,6 +134,7 @@ export default function VoiceAssistantPage() {
                       {isRecording ? "Запись..." : isProcessing ? "Обработка..." : "Подключите API для записи"}
                     </p>
                   </div>
+                  {error ? <p className="text-sm text-destructive text-center">{error}</p> : null}
 
                   {transcribedText ? (
                     <div className="space-y-2">

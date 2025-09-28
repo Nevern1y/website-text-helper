@@ -1,3 +1,6 @@
+"use client"
+
+import { FormEvent, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -6,8 +9,44 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Brain, Mail, Lock, User, Eye } from "lucide-react"
 import Link from "next/link"
+import { apiClient } from "@/lib/api-client"
+import { useAuthContext } from "@/components/providers/auth-context"
 
 export default function RegisterPage() {
+  const { setUser } = useAuthContext()
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!acceptTerms) {
+      setError("Необходимо принять условия использования")
+      return
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Пароли не совпадают")
+      return
+    }
+    setIsSubmitting(true)
+    setError(null)
+    try {
+      const { user } = await apiClient.register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      })
+      setUser(user)
+    } catch (error) {
+      setError((error as Error).message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -69,12 +108,20 @@ export default function RegisterPage() {
             </div>
 
             {/* Registration Form */}
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="name">Имя</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="name" type="text" placeholder="Ваше имя" className="pl-10" required />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Ваше имя"
+                    className="pl-10"
+                    required
+                    value={form.name}
+                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                  />
                 </div>
               </div>
 
@@ -82,7 +129,16 @@ export default function RegisterPage() {
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="email" type="email" placeholder="your@email.com" className="pl-10" required />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    className="pl-10"
+                    required
+                    value={form.email}
+                    autoComplete="email"
+                    onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                  />
                 </div>
               </div>
 
@@ -92,16 +148,21 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Минимум 8 символов"
                     className="pl-10 pr-10"
                     required
+                    value={form.password}
+                    autoComplete="new-password"
+                    onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
                   >
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Button>
@@ -114,16 +175,21 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     placeholder="Повторите пароль"
                     className="pl-10 pr-10"
                     required
+                    value={form.confirmPassword}
+                    autoComplete="new-password"
+                    onChange={(event) => setForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    aria-label={showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
                   >
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Button>
@@ -131,7 +197,12 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex items-start space-x-2">
-                <Checkbox id="terms" className="mt-1" />
+                <Checkbox
+                  id="terms"
+                  className="mt-1"
+                  checked={acceptTerms}
+                  onCheckedChange={(checked) => setAcceptTerms(Boolean(checked))}
+                />
                 <Label htmlFor="terms" className="text-sm leading-relaxed">
                   Я согласен с{" "}
                   <Link href="/terms" className="text-primary hover:underline">
@@ -144,8 +215,10 @@ export default function RegisterPage() {
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                Создать аккаунт
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                {isSubmitting ? "Создаём..." : "Создать аккаунт"}
               </Button>
             </form>
 
