@@ -58,11 +58,17 @@ export const apiClient = {
   marketingIdea: (payload: Record<string, unknown>) =>
     apiFetch<{ idea: any; history: any[] }>("/api/ai/marketing/ideas", { method: "POST", body: JSON.stringify(payload) }),
   listProjects: () => apiFetch<{ projects: any[] }>("/api/projects"),
+  getProject: (id: string) => apiFetch<{ project: any }>(`/api/projects/${id}`),
   createProject: (payload: Record<string, unknown>) =>
     apiFetch<{ project: any }>("/api/projects", { method: "POST", body: JSON.stringify(payload) }),
+  updateProject: (id: string, payload: Record<string, unknown>) =>
+    apiFetch<{ project: any }>(`/api/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteProject: (id: string) => apiFetch<{ success: boolean }>(`/api/projects/${id}`, { method: "DELETE" }),
   dashboard: () => apiFetch<{ snapshot: any; projects: any[]; requests: any[] }>("/api/dashboard"),
   uploadFile: (payload: { filename: string; mimeType: string; content: string; originalName?: string }) =>
     apiFetch<{ file: any }>("/api/files/upload", { method: "POST", body: JSON.stringify(payload) }),
+  getFile: (id: string) => apiFetch<{ file: any }>(`/api/files/${id}`),
+  deleteFile: (id: string) => apiFetch<{ success: boolean }>(`/api/files/${id}`, { method: "DELETE" }),
   updateProfile: (payload: Record<string, unknown>) =>
     apiFetch<{ user: any }>("/api/users/profile", { method: "PUT", body: JSON.stringify(payload) }),
   listModels: () => apiFetch<{ models: any[] }>("/api/ai/models"),

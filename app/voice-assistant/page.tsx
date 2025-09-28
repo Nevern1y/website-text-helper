@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -54,6 +54,15 @@ export default function VoiceAssistantPage() {
   const recordedAudioUrlRef = useRef<string | null>(null)
   const playbackRef = useRef<HTMLAudioElement | null>(null)
 
+  const stopPlayback = useCallback(() => {
+    if (playbackRef.current) {
+      playbackRef.current.pause()
+      playbackRef.current.currentTime = 0
+      playbackRef.current = null
+    }
+    setIsPlaying(false)
+  }, [])
+
   useEffect(() => {
     return () => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -63,16 +72,13 @@ export default function VoiceAssistantPage() {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop())
         mediaStreamRef.current = null
       }
-      if (playbackRef.current) {
-        playbackRef.current.pause()
-        playbackRef.current = null
-      }
+      stopPlayback()
       if (recordedAudioUrlRef.current) {
         URL.revokeObjectURL(recordedAudioUrlRef.current)
         recordedAudioUrlRef.current = null
       }
     }
-  }, [])
+  }, [stopPlayback])
 
   useEffect(() => {
     if (recordedAudioUrlRef.current && recordedAudioUrlRef.current !== recordedAudioUrl) {
@@ -184,9 +190,7 @@ export default function VoiceAssistantPage() {
 
   const handleTextToSpeech = async () => {
     if (isPlaying) {
-      playbackRef.current?.pause()
-      playbackRef.current = null
-      setIsPlaying(false)
+      stopPlayback()
       return
     }
 
@@ -204,16 +208,12 @@ export default function VoiceAssistantPage() {
       const dataUrl = `data:audio/wav;base64,${response.audio}`
       setSynthesizedAudioUrl(dataUrl)
 
-      if (playbackRef.current) {
-        playbackRef.current.pause()
-        playbackRef.current = null
-      }
+      stopPlayback()
 
       const audio = new Audio(dataUrl)
       playbackRef.current = audio
       audio.onended = () => {
-        setIsPlaying(false)
-        playbackRef.current = null
+        stopPlayback()
       }
       audio.onpause = () => {
         if (audio.currentTime < audio.duration) {
@@ -226,7 +226,7 @@ export default function VoiceAssistantPage() {
       setInfoMessage("Синтез завершён — идёт воспроизведение")
     } catch (err) {
       setError((err as Error).message)
-      setIsPlaying(false)
+      stopPlayback()
     } finally {
       setIsSynthesizing(false)
     }
